@@ -17,7 +17,6 @@ SonarCloud requires the **language-specific importer** for each stack. This repo
 reports/coverage/
   backend/
     coverage.out      ← Sonar import (Go native)
-    cobertura.xml     ← XML artifact (local/CI tooling)
   web/
     lcov.info         ← Sonar import (Vitest/V8)
     cobertura-coverage.xml

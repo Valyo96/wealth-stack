@@ -137,7 +137,7 @@ SonarCloud **does not run tests or compute coverage** — see **[Coverage guide]
 
 | Stack | Sonar import | Tool |
 |-------|--------------|------|
-| Backend | `reports/coverage/backend/coverage.out` | Go `coverprofile` (+ Cobertura XML artifact) |
+| Backend | `reports/coverage/backend/coverage.out` | Go `coverprofile` |
 | Frontend | `reports/coverage/web/lcov.info` | Vitest lcov (+ Cobertura XML artifact) |
 | Android | `reports/coverage/android/jacocoTestReport.xml` | **JaCoCo** |
 

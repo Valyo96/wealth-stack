@@ -38,17 +38,21 @@ jobs:
           java-version: 23
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@48b5f213c81028ace310571dc5ec0fbbca0b2947 # v4
         with:
           cache-read-only: false
 
       - name: Run unit tests and JaCoCo report
         working-directory: android
-        run: ./gradlew testDebugUnitTest jacocoTestReport --no-daemon --stacktrace
+        run: |
+          chmod +x ./gradlew
+          ./gradlew testDebugUnitTest jacocoTestReport --no-daemon --stacktrace
 
       - name: Lint debug variant
         working-directory: android
-        run: ./gradlew lintDebug --no-daemon --stacktrace
+        run: |
+          chmod +x ./gradlew
+          ./gradlew lintDebug --no-daemon --stacktrace

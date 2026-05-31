@@ -69,10 +69,10 @@ frontend-ci:
 	cd web && npm ci && npm run lint && npm run typecheck && npm run build && npm run coverage:sonar
 
 android-test:
-	cd android && ./gradlew testDebugUnitTest jacocoTestReport --no-daemon
+	cd android && chmod +x ./gradlew && ./gradlew testDebugUnitTest jacocoTestReport --no-daemon
 
 android-lint:
-	cd android && ./gradlew lintDebug --no-daemon
+	cd android && chmod +x ./gradlew && ./gradlew lintDebug --no-daemon
 
 android-ci: android-test android-lint
 

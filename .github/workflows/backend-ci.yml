@@ -9,6 +9,7 @@ on:
       - ".golangci.yml"
       - "Makefile"
       - "scripts/check-backend-coverage.sh"
+      - "scripts/generate-backend-coverage.sh"
   push:
     branches: [main]
     paths:
@@ -17,6 +18,7 @@ on:
       - ".golangci.yml"
       - "Makefile"
       - "scripts/check-backend-coverage.sh"
+      - "scripts/generate-backend-coverage.sh"
 
 concurrency:
   group: backend-ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -50,7 +52,7 @@ jobs:
         run: go vet ./...
 
       - name: Lint (golangci-lint)
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@55c2c1448f86e01eaae002a5a3a9624417608d84 # v6
         with:
           version: v1.62.2
           working-directory: backend
