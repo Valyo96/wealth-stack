@@ -1,18 +1,8 @@
 name: Android CI
 
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - "android/**"
-      - ".github/workflows/android-ci.yml"
-      - "Makefile"
-  push:
-    branches: [main]
-    paths:
-      - "android/**"
-      - ".github/workflows/android-ci.yml"
-      - "Makefile"
+  workflow_call:
+  workflow_dispatch:
 
 concurrency:
   group: android-ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -56,3 +46,17 @@ jobs:
         run: |
           chmod +x ./gradlew
           ./gradlew lintDebug --no-daemon --stacktrace
+
+      - name: Publish Android coverage for Sonar
+        run: |
+          mkdir -p reports/coverage/android
+          cp android/app/build/reports/jacoco/jacocoTestReport/jacocoTestReport.xml \
+            reports/coverage/android/jacocoTestReport.xml
+
+      - name: Upload Android coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-coverage
+          path: reports/coverage/android/
+          retention-days: 5
+          if-no-files-found: error

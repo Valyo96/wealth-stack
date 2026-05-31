@@ -6,24 +6,29 @@ This document describes the GitHub Actions CI pipeline, local parity commands, S
 
 | Workflow | File | Trigger | Purpose |
 |----------|------|---------|---------|
-| Backend CI | [`.github/workflows/backend-ci.yml`](../.github/workflows/backend-ci.yml) | PR / push to `main` (backend paths) | Go lint, unit tests, integration tests, race detector, coverage |
-| Frontend CI | [`.github/workflows/frontend-ci.yml`](../.github/workflows/frontend-ci.yml) | PR / push to `main` (web paths) | ESLint, TypeScript, build, Vitest coverage |
-| Android CI | [`.github/workflows/android-ci.yml`](../.github/workflows/android-ci.yml) | PR / push to `main` (android paths) | Unit tests, lint (**JDK 23**) |
-| Sonar Analysis | [`.github/workflows/sonar.yml`](../.github/workflows/sonar.yml) | PR / push to `main` | SonarCloud scan + quality gate |
+| **CI Pipeline** | [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) | PR / push to `main` | Orchestrates all module checks, then SonarCloud |
+| Backend CI | [`.github/workflows/backend-ci.yml`](../.github/workflows/backend-ci.yml) | Called by CI pipeline (or manual dispatch) | Go lint, unit tests, integration tests, race detector, coverage |
+| Frontend CI | [`.github/workflows/frontend-ci.yml`](../.github/workflows/frontend-ci.yml) | Called by CI pipeline (or manual dispatch) | ESLint, TypeScript, build, Vitest coverage |
+| Android CI | [`.github/workflows/android-ci.yml`](../.github/workflows/android-ci.yml) | Called by CI pipeline (or manual dispatch) | Unit tests, JaCoCo, lint (**JDK 23**) |
+| Sonar Analysis | [`.github/workflows/sonar.yml`](../.github/workflows/sonar.yml) | Called by CI pipeline after all modules pass | SonarCloud scan + quality gate |
+
+The **CI Pipeline** runs backend, frontend, and Android validation **in parallel**, then runs SonarCloud analysis **last** using coverage artifacts from those jobs. Module workflows can also be triggered manually via **workflow_dispatch**.
 
 All workflows use **concurrency groups** with `cancel-in-progress: true` to avoid redundant runs when new commits are pushed to the same PR.
 
 ```mermaid
 flowchart TD
-  pr[PullRequestToMain] --> backendCI[BackendCI]
-  pr --> frontendCI[FrontendCI]
-  pr --> androidCI[AndroidCI]
-  pr --> sonarPrep[SonarCoverageJobs]
-  sonarPrep --> sonarScan[SonarCloudQualityGate]
-  backendCI --> mergeGate[BranchProtection]
+  pr[PullRequestToMain] --> ci[CI Pipeline]
+  ci --> backendCI[Backend validation]
+  ci --> frontendCI[Frontend validation]
+  ci --> androidCI[Android validation]
+  backendCI --> sonarScan[SonarCloud analysis]
+  frontendCI --> sonarScan
+  androidCI --> sonarScan
+  sonarScan --> mergeGate[Branch protection]
+  backendCI --> mergeGate
   frontendCI --> mergeGate
   androidCI --> mergeGate
-  sonarScan --> mergeGate
 ```
 
 ## Local parity commands
@@ -85,12 +90,13 @@ cd android
 2. Confirm `sonar.organization` in [`sonar-project.properties`](../sonar-project.properties) matches your SonarCloud organization key.
 3. Add `SONAR_TOKEN` under **GitHub → Settings → Secrets and variables → Actions**.
 4. Install the SonarCloud GitHub App for PR decoration and quality gate status.
+5. **Disable Automatic Analysis** in SonarCloud: **Project → Administration → Analysis Method → disable Automatic Analysis**. CI analysis via GitHub Actions is the source of truth; running both causes `You are running CI analysis while Automatic Analysis is enabled` failures.
 
 ## Branch protection (recommended)
 
 After 2–5 days of stable CI runs, enable for `main`:
 
-1. **Require status checks:**
+1. **Require status checks** (from the CI Pipeline workflow):
    - `Backend validation`
    - `Frontend validation`
    - `Android validation`
@@ -106,6 +112,7 @@ After 2–5 days of stable CI runs, enable for `main`:
 | Coverage threshold failure | New code without tests | Add unit/integration tests |
 | golangci-lint failure | Style/static analysis issue | Run `golangci-lint run` in `backend/` |
 | Sonar quality gate failure | Code smells, duplication, or coverage regression | Review SonarCloud report on PR |
+| Sonar "Automatic Analysis enabled" | Both CI scan and SonarCloud auto-analysis active | Disable Automatic Analysis in SonarCloud project settings |
 | `SONAR_TOKEN` missing | Secret not configured | Add secret or skip Sonar until configured |
 | Fork PR skips Sonar | Secrets unavailable for forks | Expected; maintainers can run Sonar on merge |
 
@@ -127,7 +134,7 @@ After 2–5 days of stable CI runs, enable for `main`:
 ## Observability
 
 - **Logs:** Each workflow step is named for quick scanning in GitHub Actions.
-- **Artifacts:** Backend (`backend-coverage`) and frontend (`frontend-coverage`) coverage files retained 5 days.
+- **Artifacts:** Backend (`backend-coverage`), frontend (`frontend-coverage`), and Android (`android-coverage`) reports retained 5 days.
 - **Metrics to watch:** Workflow duration, failure rate, flaky integration tests, median PR validation time.
 - **Alerting:** GitHub email/notifications for failed required checks.
 

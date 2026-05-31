@@ -96,6 +96,8 @@ tasks.withType<Test>().configureEach {
 }
 
 tasks.register<JacocoReport>("jacocoTestReport") {
+    group = "verification"
+    description = "Generates JaCoCo XML and HTML coverage reports for SonarCloud."
     dependsOn("testDebugUnitTest")
 
     reports {

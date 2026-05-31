@@ -1,0 +1,38 @@
+name: CI Pipeline
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-pipeline-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  backend:
+    name: Backend validation
+    uses: ./.github/workflows/backend-ci.yml
+    secrets: inherit
+
+  frontend:
+    name: Frontend validation
+    uses: ./.github/workflows/frontend-ci.yml
+    secrets: inherit
+
+  android:
+    name: Android validation
+    uses: ./.github/workflows/android-ci.yml
+    secrets: inherit
+
+  sonar:
+    name: SonarCloud analysis
+    needs: [backend, frontend, android]
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    uses: ./.github/workflows/sonar.yml
+    secrets: inherit

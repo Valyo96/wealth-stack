@@ -42,7 +42,7 @@ class LoginViewModelTest {
 
     @Test
     fun submit_showsValidationError_whenPasswordTooShort() = runTest(dispatcher) {
-        viewModel.onEmailChange("user@example.com")
+        viewModel.onEmailChange(TEST_EMAIL)
         viewModel.onPasswordChange("short")
 
         var successCalled = false
@@ -60,8 +60,8 @@ class LoginViewModelTest {
     fun submit_callsLogin_whenRegisterModeDisabled() = runTest(dispatcher) {
         coEvery { authRepository.login(any(), any()) } returns Unit
 
-        viewModel.onEmailChange("user@example.com")
-        viewModel.onPasswordChange("password123")
+        viewModel.onEmailChange(TEST_EMAIL)
+        viewModel.onPasswordChange(TEST_PASSWORD)
 
         var successCalled = false
         viewModel.submit { successCalled = true }
@@ -70,7 +70,7 @@ class LoginViewModelTest {
         assertTrue(successCalled)
         assertEquals(null, viewModel.uiState.value.error)
         assertFalse(viewModel.uiState.value.isLoading)
-        coVerify(exactly = 1) { authRepository.login("user@example.com", "password123") }
+        coVerify(exactly = 1) { authRepository.login(TEST_EMAIL, TEST_PASSWORD) }
     }
 
     @Test
@@ -78,13 +78,13 @@ class LoginViewModelTest {
         coEvery { authRepository.register(any(), any()) } returns Unit
 
         viewModel.toggleMode()
-        viewModel.onEmailChange("user@example.com")
-        viewModel.onPasswordChange("password123")
+        viewModel.onEmailChange(TEST_EMAIL)
+        viewModel.onPasswordChange(TEST_PASSWORD)
 
         viewModel.submit {}
         advanceUntilIdle()
 
-        coVerify(exactly = 1) { authRepository.register("user@example.com", "password123") }
+        coVerify(exactly = 1) { authRepository.register(TEST_EMAIL, TEST_PASSWORD) }
         coVerify(exactly = 0) { authRepository.login(any(), any()) }
     }
 
@@ -92,12 +92,17 @@ class LoginViewModelTest {
     fun submit_surfacesRepositoryError() = runTest(dispatcher) {
         coEvery { authRepository.login(any(), any()) } throws IllegalStateException("Network down")
 
-        viewModel.onEmailChange("user@example.com")
-        viewModel.onPasswordChange("password123")
+        viewModel.onEmailChange(TEST_EMAIL)
+        viewModel.onPasswordChange(TEST_PASSWORD)
         viewModel.submit {}
         advanceUntilIdle()
 
         assertEquals("Network down", viewModel.uiState.value.error)
         assertFalse(viewModel.uiState.value.isLoading)
+    }
+
+    private companion object {
+        const val TEST_EMAIL = "user@example.com"
+        const val TEST_PASSWORD = "password123"
     }
 }

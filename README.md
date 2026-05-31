@@ -383,14 +383,12 @@ Individual Make targets are listed below.
 
 ## CI/CD
 
-Pull requests to `main` run automated validation via GitHub Actions:
+Pull requests to `main` run the **[CI Pipeline](.github/workflows/ci.yml)** workflow:
 
-- **Backend CI** — lint, unit tests, integration tests (Testcontainers + Postgres), race detector, coverage
-- **Frontend CI** — ESLint, TypeScript, build, Vitest coverage
-- **Android CI** — unit tests and lint on **JDK 23**
-- **Sonar Analysis** — SonarCloud quality gate and PR decoration (imports Go, lcov, and **JaCoCo** coverage reports)
+1. **Backend, frontend, and Android validation** run in parallel (lint, tests, coverage).
+2. **SonarCloud analysis** runs last, using coverage artifacts from all three stacks.
 
-Configure the `SONAR_TOKEN` repository secret before enabling Sonar as a required check. See [CI/CD Runbook](docs/ci.md) for setup, branch protection, and troubleshooting.
+Configure the `SONAR_TOKEN` repository secret and **disable SonarCloud Automatic Analysis** (CI is the source of truth). See [CI/CD Runbook](docs/ci.md) for setup, branch protection, and troubleshooting.
 
 ## Documentation
 

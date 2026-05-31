@@ -1,24 +1,8 @@
 name: Backend CI
 
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - "backend/**"
-      - ".github/workflows/backend-ci.yml"
-      - ".golangci.yml"
-      - "Makefile"
-      - "scripts/check-backend-coverage.sh"
-      - "scripts/generate-backend-coverage.sh"
-  push:
-    branches: [main]
-    paths:
-      - "backend/**"
-      - ".github/workflows/backend-ci.yml"
-      - ".golangci.yml"
-      - "Makefile"
-      - "scripts/check-backend-coverage.sh"
-      - "scripts/generate-backend-coverage.sh"
+  workflow_call:
+  workflow_dispatch:
 
 concurrency:
   group: backend-ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
