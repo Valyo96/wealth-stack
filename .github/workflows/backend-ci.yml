@@ -56,13 +56,10 @@ jobs:
           working-directory: backend
 
       - name: Unit tests with coverage
-        working-directory: backend
-        run: |
-          PACKAGES="$(go list ./... | grep -v /integration)"
-          go test ${PACKAGES} -coverprofile=coverage.out -covermode=atomic -coverpkg=./...
+        run: bash scripts/generate-backend-coverage.sh
 
       - name: Enforce coverage threshold
-        run: bash scripts/check-backend-coverage.sh backend/coverage.out
+        run: bash scripts/check-backend-coverage.sh reports/coverage/backend/coverage.out
 
       - name: Integration tests
         working-directory: backend
@@ -78,6 +75,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: backend-coverage
-          path: backend/coverage.out
+          path: reports/coverage/backend/
           retention-days: 5
           if-no-files-found: error

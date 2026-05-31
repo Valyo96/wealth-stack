@@ -1,5 +1,6 @@
 .PHONY: dev migrate-up migrate-down sqlc-generate test test-unit test-integration test-race lint lint-backend lint-frontend \
-	backend-coverage frontend-coverage ci backend-ci frontend-ci android-test android-lint android-ci stack-up stack-down seed-demo
+	backend-coverage frontend-coverage android-coverage sonar-coverage ci backend-ci frontend-ci \
+	android-test android-lint android-ci stack-up stack-down seed-demo
 
 DATABASE_URL ?= postgres://wealthstack:wealthstack@localhost:5432/wealthstack?sslmode=disable
 COMPOSE_FILE = deploy/docker-compose.yml
@@ -40,11 +41,18 @@ test-integration:
 test-race:
 	cd backend && go test -race $(BACKEND_PACKAGES) -timeout 5m
 
-backend-coverage: test-unit
-	bash scripts/check-backend-coverage.sh backend/coverage.out
+backend-coverage:
+	bash scripts/generate-backend-coverage.sh
+	bash scripts/check-backend-coverage.sh reports/coverage/backend/coverage.out
 
 frontend-coverage:
-	cd web && npm ci && npm run coverage
+	bash scripts/generate-frontend-coverage.sh
+
+android-coverage:
+	bash scripts/generate-android-coverage.sh
+
+sonar-coverage:
+	bash scripts/generate-all-coverage.sh
 
 lint: lint-backend lint-frontend
 
@@ -58,10 +66,10 @@ lint-frontend:
 backend-ci: lint-backend test-unit test-integration test-race backend-coverage
 
 frontend-ci:
-	cd web && npm ci && npm run lint && npm run typecheck && npm run build && npm run coverage
+	cd web && npm ci && npm run lint && npm run typecheck && npm run build && npm run coverage:sonar
 
 android-test:
-	cd android && ./gradlew testDebugUnitTest --no-daemon
+	cd android && ./gradlew testDebugUnitTest jacocoTestReport --no-daemon
 
 android-lint:
 	cd android && ./gradlew lintDebug --no-daemon

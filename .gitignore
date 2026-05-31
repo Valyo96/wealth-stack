@@ -33,6 +33,7 @@ android/keystore.properties
 web/node_modules/
 web/dist/
 web/coverage/
+reports/
 web/.env
 web/.env.local
 

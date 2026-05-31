@@ -45,9 +45,9 @@ jobs:
         with:
           cache-read-only: false
 
-      - name: Run unit tests
+      - name: Run unit tests and JaCoCo report
         working-directory: android
-        run: ./gradlew testDebugUnitTest --no-daemon --stacktrace
+        run: ./gradlew testDebugUnitTest jacocoTestReport --no-daemon --stacktrace
 
       - name: Lint debug variant
         working-directory: android

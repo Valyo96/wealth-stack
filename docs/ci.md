@@ -133,6 +133,18 @@ After 2–5 days of stable CI runs, enable for `main`:
 
 ## Coverage thresholds
 
+SonarCloud **does not run tests or compute coverage** — see **[Coverage guide](coverage.md)** for how each stack generates reports.
+
+| Stack | Sonar import | Tool |
+|-------|--------------|------|
+| Backend | `reports/coverage/backend/coverage.out` | Go `coverprofile` (+ Cobertura XML artifact) |
+| Frontend | `reports/coverage/web/lcov.info` | Vitest lcov (+ Cobertura XML artifact) |
+| Android | `reports/coverage/android/jacocoTestReport.xml` | **JaCoCo** |
+
+Generate all reports locally: `bash scripts/generate-all-coverage.sh`
+
+### CI-enforced thresholds (pre-Sonar)
+
 | Stack | Threshold | Enforced by |
 |-------|-----------|-------------|
 | Backend | 1% (configurable via `MIN_BACKEND_COVERAGE`) | `scripts/check-backend-coverage.sh` |

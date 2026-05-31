@@ -27,25 +27,19 @@ jobs:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
 
-      - name: Generate backend coverage
-        working-directory: backend
-        run: |
-          PACKAGES="$(go list ./... | grep -v /integration)"
-          go test ${PACKAGES} -coverprofile=coverage.out -covermode=atomic -coverpkg=./...
+      - name: Generate Go + Cobertura coverage reports
+        run: bash scripts/generate-backend-coverage.sh
 
       - uses: actions/upload-artifact@v4
         with:
           name: sonar-backend-coverage
-          path: backend/coverage.out
+          path: reports/coverage/backend/
           retention-days: 1
 
   frontend-coverage:
     name: Collect frontend coverage
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    defaults:
-      run:
-        working-directory: web
     steps:
       - uses: actions/checkout@v4
 
@@ -55,19 +49,48 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
 
-      - run: npm ci
-      - run: npm run coverage
+      - name: Generate lcov + Cobertura coverage reports
+        run: bash scripts/generate-frontend-coverage.sh
 
       - uses: actions/upload-artifact@v4
         with:
           name: sonar-frontend-coverage
-          path: web/coverage/lcov.info
+          path: reports/coverage/web/
           retention-days: 1
+
+  android-coverage:
+    name: Collect Android JaCoCo coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 23
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Generate JaCoCo XML report
+        run: bash scripts/generate-android-coverage.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sonar-android-coverage
+          path: reports/coverage/android/
+          retention-days: 1
+          if-no-files-found: error
 
   sonar:
     name: SonarCloud analysis
     runs-on: ubuntu-latest
-    needs: [backend-coverage, frontend-coverage]
+    needs: [backend-coverage, frontend-coverage, android-coverage]
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     timeout-minutes: 10
     steps:
@@ -79,13 +102,19 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: sonar-backend-coverage
-          path: backend
+          path: reports/coverage/backend
 
       - name: Download frontend coverage
         uses: actions/download-artifact@v4
         with:
           name: sonar-frontend-coverage
-          path: web/coverage
+          path: reports/coverage/web
+
+      - name: Download Android JaCoCo report
+        uses: actions/download-artifact@v4
+        with:
+          name: sonar-android-coverage
+          path: reports/coverage/android
 
       - name: Validate Sonar token
         env:
