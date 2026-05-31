@@ -32,12 +32,16 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_23
+        targetCompatibility = JavaVersion.VERSION_23
     }
 
     kotlinOptions {
-        jvmTarget = "17"
+        jvmTarget = "23"
+    }
+
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
     }
 
     packaging {
@@ -70,4 +74,9 @@ dependencies {
     ksp(libs.moshi.codegen)
     implementation(libs.datastore.preferences)
     implementation(libs.kotlinx.coroutines.android)
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.mockk)
+    testImplementation(libs.androidx.arch.core.testing)
+    testImplementation(libs.okhttp.mockwebserver)
 }

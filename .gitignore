@@ -32,6 +32,7 @@ android/keystore.properties
 # Web
 web/node_modules/
 web/dist/
+web/coverage/
 web/.env
 web/.env.local
 

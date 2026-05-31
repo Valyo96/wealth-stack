@@ -1,0 +1,83 @@
+name: Backend CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-ci.yml"
+      - ".golangci.yml"
+      - "Makefile"
+      - "scripts/check-backend-coverage.sh"
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-ci.yml"
+      - ".golangci.yml"
+      - "Makefile"
+      - "scripts/check-backend-coverage.sh"
+
+concurrency:
+  group: backend-ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - name: Download Go modules
+        working-directory: backend
+        run: go mod download
+
+      - name: Static analysis (go vet)
+        working-directory: backend
+        run: go vet ./...
+
+      - name: Lint (golangci-lint)
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.62.2
+          working-directory: backend
+
+      - name: Unit tests with coverage
+        working-directory: backend
+        run: |
+          PACKAGES="$(go list ./... | grep -v /integration)"
+          go test ${PACKAGES} -coverprofile=coverage.out -covermode=atomic -coverpkg=./...
+
+      - name: Enforce coverage threshold
+        run: bash scripts/check-backend-coverage.sh backend/coverage.out
+
+      - name: Integration tests
+        working-directory: backend
+        run: go test -tags=integration ./internal/integration/... -v -timeout 5m
+
+      - name: Race detector
+        working-directory: backend
+        run: |
+          PACKAGES="$(go list ./... | grep -v /integration)"
+          go test -race ${PACKAGES} -timeout 5m
+
+      - name: Upload backend coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/coverage.out
+          retention-days: 5
+          if-no-files-found: error

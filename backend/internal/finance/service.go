@@ -12,9 +12,9 @@ import (
 )
 
 var (
-	ErrNotFound      = errors.New("resource not found")
-	ErrInvalidInput  = errors.New("invalid input")
-	ErrForbidden     = errors.New("forbidden")
+	ErrNotFound     = errors.New("resource not found")
+	ErrInvalidInput = errors.New("invalid input")
+	ErrForbidden    = errors.New("forbidden")
 )
 
 type Service struct {
@@ -143,8 +143,8 @@ func (s *Service) CreateTransaction(ctx context.Context, userID uuid.UUID, in Cr
 
 func (s *Service) DashboardSummary(ctx context.Context, userID uuid.UUID, from, to time.Time, label string) (DashboardSummary, error) {
 	row, err := s.queries.DashboardSummary(ctx, store.DashboardSummaryParams{
-		UserID:     userID,
-		OccurredAt: from,
+		UserID:       userID,
+		OccurredAt:   from,
 		OccurredAt_2: to,
 	})
 	if err != nil {

@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/wealth-stack/backend/internal/finance"
 	"github.com/wealth-stack/backend/internal/apiresp"
+	"github.com/wealth-stack/backend/internal/finance"
 	"github.com/wealth-stack/backend/internal/http/middleware"
 )
 

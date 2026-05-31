@@ -1,0 +1,54 @@
+name: Android CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "android/**"
+      - ".github/workflows/android-ci.yml"
+      - "Makefile"
+  push:
+    branches: [main]
+    paths:
+      - "android/**"
+      - ".github/workflows/android-ci.yml"
+      - "Makefile"
+
+concurrency:
+  group: android-ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    name: Android validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 23
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
+
+      - name: Run unit tests
+        working-directory: android
+        run: ./gradlew testDebugUnitTest --no-daemon --stacktrace
+
+      - name: Lint debug variant
+        working-directory: android
+        run: ./gradlew lintDebug --no-daemon --stacktrace

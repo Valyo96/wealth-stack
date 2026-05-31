@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/wealth-stack/backend/internal/auth"
 	"github.com/wealth-stack/backend/internal/apiresp"
+	"github.com/wealth-stack/backend/internal/auth"
 )
 
 type contextKey string

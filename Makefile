@@ -1,7 +1,9 @@
-.PHONY: dev migrate-up migrate-down sqlc-generate test backend-run backend-docker web-dev stack-up stack-down seed-demo
+.PHONY: dev migrate-up migrate-down sqlc-generate test test-unit test-integration test-race lint lint-backend lint-frontend \
+	backend-coverage frontend-coverage ci backend-ci frontend-ci android-test android-lint android-ci stack-up stack-down seed-demo
 
 DATABASE_URL ?= postgres://wealthstack:wealthstack@localhost:5432/wealthstack?sslmode=disable
 COMPOSE_FILE = deploy/docker-compose.yml
+BACKEND_PACKAGES := $(shell cd backend && go list ./... | grep -v /integration)
 
 dev:
 	docker compose -f $(COMPOSE_FILE) up -d postgres
@@ -27,8 +29,46 @@ migrate-down:
 sqlc-generate:
 	cd backend && sqlc generate
 
-test:
-	cd backend && go test ./...
+test: test-unit
+
+test-unit:
+	cd backend && go test $(BACKEND_PACKAGES) -coverprofile=coverage.out -covermode=atomic
+
+test-integration:
+	cd backend && go test -tags=integration ./internal/integration/... -v -timeout 5m
+
+test-race:
+	cd backend && go test -race $(BACKEND_PACKAGES) -timeout 5m
+
+backend-coverage: test-unit
+	bash scripts/check-backend-coverage.sh backend/coverage.out
+
+frontend-coverage:
+	cd web && npm ci && npm run coverage
+
+lint: lint-backend lint-frontend
+
+lint-backend:
+	cd backend && go vet ./...
+	cd backend && test -z "$$(gofmt -l .)" || (gofmt -l . && exit 1)
+
+lint-frontend:
+	cd web && npm ci && npm run lint
+
+backend-ci: lint-backend test-unit test-integration test-race backend-coverage
+
+frontend-ci:
+	cd web && npm ci && npm run lint && npm run typecheck && npm run build && npm run coverage
+
+android-test:
+	cd android && ./gradlew testDebugUnitTest --no-daemon
+
+android-lint:
+	cd android && ./gradlew lintDebug --no-daemon
+
+android-ci: android-test android-lint
+
+ci: backend-ci frontend-ci android-ci
 
 backend-run:
 	cd backend && go run ./cmd/api
