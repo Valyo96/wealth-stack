@@ -9,8 +9,17 @@ REPORT_DIR="${REPO_ROOT}/reports/coverage/backend"
 mkdir -p "${REPORT_DIR}"
 
 cd "${BACKEND_DIR}"
-PACKAGES="$(go list ./... | grep -v /integration)"
-go test ${PACKAGES} -coverprofile=coverage.out -covermode=atomic -coverpkg=./...
+
+TEST_PACKAGES=""
+while IFS= read -r pkg; do
+  dir="$(go list -f '{{.Dir}}' "${pkg}")"
+  if compgen -G "${dir}/*_test.go" > /dev/null; then
+    TEST_PACKAGES="${TEST_PACKAGES} ${pkg}"
+  fi
+done < <(go list ./... | grep -v /integration)
+
+# Only run packages that contain tests; empty packages corrupt merged cover profiles.
+go test ${TEST_PACKAGES} -coverprofile=coverage.out -covermode=atomic -coverpkg=./...
 
 cp coverage.out "${REPORT_DIR}/coverage.out"
 echo "Backend coverage report written to ${REPORT_DIR}/coverage.out"
