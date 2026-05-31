@@ -29,6 +29,7 @@ docs/        architecture, API, roadmap
 - [Docker Desktop](https://www.docker.com/) (Postgres, API, and web — **no Go or Node install required** for Docker)
 - [Node.js](https://nodejs.org/) 20+ (optional — only for local web dev with hot reload)
 - [Android Studio](https://developer.android.com/studio) (Ladybug or newer, optional)
+- **JDK 23+** (required for Android builds and tests — see [Running tests locally](#running-tests-locally))
 
 Optional for local backend development:
 
@@ -183,11 +184,14 @@ Use the same register/login flow as mobile. Dashboard and Transactions mirror th
 
 ### 5. Android
 
-1. Open the `android/` folder in Android Studio.
-2. Start an emulator (API 26+).
-3. Run the **app** configuration.
+1. Install **JDK 23+** and point Android Studio to it (**Settings → Build, Execution, Deployment → Build Tools → Gradle → Gradle JDK**).
+2. Open the `android/` folder in Android Studio (installs the Android SDK on first launch).
+3. Start an emulator (API 26+).
+4. Run the **app** configuration.
 
 Debug builds call `http://10.0.2.2:8080/` (emulator → host machine). Cleartext is allowed in debug only.
+
+If Gradle cannot find your SDK, copy [`android/local.properties.example`](android/local.properties.example) to `android/local.properties` and set `sdk.dir`.
 
 ### 6. Try the flow
 
@@ -214,6 +218,145 @@ To re-apply schema + seed manually without restarting the stack:
 
 **Log out and sign in again** after seeding. Local seed files live in [`backend/migrations-local/`](backend/migrations-local/).
 
+---
+
+## Running tests locally
+
+Run these before opening a PR to match CI behavior. Use **`make ci`** to run backend, web, and Android checks in one command (requires Go, Node.js, Docker, JDK 23+, and Android SDK).
+
+### Prerequisites by stack
+
+| Stack | Required tools |
+|-------|----------------|
+| Backend | [Go 1.23+](https://go.dev/dl/), Docker Desktop (integration tests only) |
+| Web | [Node.js 20+](https://nodejs.org/) |
+| Android | **JDK 23+**, Android SDK (via Android Studio), Gradle wrapper (`android/gradlew`) |
+
+### Backend (Go)
+
+**IntelliJ / IDE terminal — `go` not recognized?**
+
+IntelliJ caches PATH when the IDE starts. Either **fully restart IntelliJ** (File → Exit, then reopen), or use the helper scripts (they call Go by full path):
+
+```powershell
+# From repo root — works without fixing PATH
+.\scripts\test-backend.ps1
+.\scripts\test-backend-integration.ps1   # Docker must be running
+```
+
+In IntelliJ: **Settings → Languages & Frameworks → Go → GOROOT** → set to `C:\Program Files\Go`.
+
+To refresh PATH in the current terminal only:
+
+```powershell
+. .\scripts\ensure-go.ps1
+go version
+```
+
+**Unit tests** (fast, no Docker):
+
+```powershell
+cd backend
+go test ./...
+```
+
+Or from repo root:
+
+```powershell
+.\scripts\test-backend.ps1
+```
+
+Or with Make:
+
+```powershell
+make test-unit
+```
+
+**Integration tests** (Postgres via Testcontainers — **Docker must be running**):
+
+```powershell
+.\scripts\test-backend-integration.ps1
+```
+
+Or:
+
+```powershell
+make test-integration
+```
+
+**Race detector:**
+
+```powershell
+make test-race
+```
+
+**Full backend CI parity** (lint, unit + integration tests, race detector, coverage threshold):
+
+```powershell
+make backend-ci
+```
+
+### Web (React + TypeScript)
+
+```powershell
+cd web
+npm ci
+npm run lint
+npm run typecheck
+npm run build
+npm run coverage
+```
+
+Or:
+
+```powershell
+make frontend-ci
+```
+
+`npm run coverage` runs Vitest and enforces minimum coverage thresholds defined in [`web/vitest.config.ts`](web/vitest.config.ts).
+
+### Android (Kotlin)
+
+Requires **JDK 23+** and a configured Android SDK.
+
+**Windows (PowerShell):**
+
+```powershell
+# Ensure JAVA_HOME points to JDK 23+
+$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-23"
+
+cd android
+.\gradlew.bat testDebugUnitTest
+.\gradlew.bat lintDebug
+```
+
+**macOS / Linux / Git Bash:**
+
+```bash
+export JAVA_HOME=$(/usr/libexec/java_home -v 23)   # macOS example
+cd android
+./gradlew testDebugUnitTest
+./gradlew lintDebug
+```
+
+Or with Make:
+
+```powershell
+make android-test
+make android-lint
+make android-ci
+```
+
+Unit tests live under [`android/app/src/test/`](android/app/src/test/) and cover API helpers, auth interceptor behavior, and login validation logic.
+
+### Run everything
+
+```powershell
+make ci
+```
+
+Individual Make targets are listed below.
+
 ## Make targets
 
 | Target | Description |
@@ -228,12 +371,32 @@ To re-apply schema + seed manually without restarting the stack:
 | `make backend-docker` | Build and run API in Docker |
 | `make web-dev` | Start web dev server (requires Node) |
 | `make test` | Go unit tests |
+| `make test-integration` | Go integration tests (requires Docker) |
+| `make test-race` | Go tests with race detector |
+| `make lint` | Backend + frontend lint |
+| `make backend-ci` | Full backend CI parity |
+| `make frontend-ci` | Full frontend CI parity |
+| `make android-test` | Android unit tests (JDK 23+, Android SDK) |
+| `make android-lint` | Android lint (debug variant) |
+| `make android-ci` | Full Android CI parity |
+| `make ci` | Full CI parity (backend + frontend + Android) |
+
+## CI/CD
+
+Pull requests to `main` run the **[CI Pipeline](.github/workflows/ci.yml)** workflow:
+
+1. **Backend, frontend, and Android validation** run in parallel (lint, tests, coverage).
+2. **SonarCloud analysis** runs last, using coverage artifacts from all three stacks.
+
+Configure the `SONAR_TOKEN` repository secret and **disable SonarCloud Automatic Analysis** (CI is the source of truth). See [CI/CD Runbook](docs/ci.md) for setup, branch protection, and troubleshooting.
 
 ## Documentation
 
 - [Architecture](docs/architecture.md)
 - [API](docs/api.md)
 - [Roadmap](docs/roadmap.md)
+- [CI/CD Runbook](docs/ci.md)
+- [Coverage & Sonar imports](docs/coverage.md)
 
 ## License
 
