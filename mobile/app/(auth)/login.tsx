@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { Button } from "../../src/components/Button";
+import { apiBaseUrl } from "../../src/api";
 import { useAuthStore } from "../../src/store/authStore";
 import { common } from "../../src/theme/styles";
 
@@ -37,8 +38,11 @@ export default function LoginScreen() {
       }
       router.replace("/(app)");
     } catch (err) {
-      const message =
+      let message =
         err instanceof ApiClientError ? err.message : "Authentication failed";
+      if (err instanceof ApiClientError && err.code === "network_error") {
+        message += `\n\nAPI: ${apiBaseUrl}\nOn a real phone, use your PC's LAN IP (ipconfig), not 10.0.2.2.`;
+      }
       setError(message);
     } finally {
       setLoading(false);

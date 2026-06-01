@@ -7,7 +7,7 @@ const compat = new FlatCompat({
 
 module.exports = [
   {
-    files: ["eslint.config.js"],
+    files: ["eslint.config.js", "jest.config.js"],
     languageOptions: {
       globals: {
         __dirname: "readonly",

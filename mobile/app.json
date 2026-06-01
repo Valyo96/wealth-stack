@@ -5,13 +5,20 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "scheme": "wealthstack",
+    "platforms": ["ios", "android"],
     "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.wealthstack.app"
+      "bundleIdentifier": "com.wealthstack.app",
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsLocalNetworking": true
+        }
+      }
     },
     "android": {
       "package": "com.wealthstack.app",
+      "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "backgroundColor": "#0f1419"
       }

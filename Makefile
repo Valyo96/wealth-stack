@@ -61,20 +61,25 @@ lint-backend:
 	cd backend && test -z "$$(gofmt -l .)" || (gofmt -l . && exit 1)
 
 lint-frontend:
-	cd web && npm run lint
+	npm run lint -w wealth-stack-web
 
 backend-ci: lint-backend test-unit test-integration test-race backend-coverage
 
 frontend-ci:
 	npm run build -w @wealth-stack/shared
-	cd web && npm run lint && npm run typecheck && npm run build && npm run coverage:sonar
+	npm run lint -w wealth-stack-web
+	npm run typecheck -w wealth-stack-web
+	npm run build -w wealth-stack-web
+	npm run coverage:sonar -w wealth-stack-web
 
 mobile-test:
-	cd mobile && npm run test
+	npm run test -w wealth-stack-mobile
 
 mobile-ci:
 	npm run build -w @wealth-stack/shared
-	cd mobile && npm run lint && npm run typecheck && npm run coverage:sonar
+	npm run lint -w wealth-stack-mobile
+	npm run typecheck -w wealth-stack-mobile
+	npm run coverage:sonar -w wealth-stack-mobile
 
 ci: backend-ci frontend-ci mobile-ci
 
@@ -85,7 +90,8 @@ backend-docker:
 	docker compose -f $(COMPOSE_FILE) up --build api
 
 web-dev:
-	cd web && npm run dev
+	npm run dev -w wealth-stack-web
 
 mobile-start:
-	cd mobile && npm run start
+	npm run build -w @wealth-stack/shared
+	npm run start -w wealth-stack-mobile

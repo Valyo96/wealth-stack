@@ -6,10 +6,22 @@
     "web",
     "mobile"
   ],
+  "dependencies": {
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-native": "0.81.5",
+    "react-test-renderer": "19.1.0"
+  },
   "scripts": {
-    "test:shared": "npm run test -w @wealth-stack/shared"
+    "test:shared": "npm run test -w @wealth-stack/shared",
+    "build:shared": "npm run build -w @wealth-stack/shared",
+    "build:web": "npm run build -w @wealth-stack/shared && npm run build -w wealth-stack-web",
+    "start:mobile": "npm run start -w wealth-stack-mobile"
   },
   "overrides": {
-    "react-test-renderer": "18.3.1"
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-test-renderer": "19.1.0",
+    "react-native": "0.81.5"
   }
 }

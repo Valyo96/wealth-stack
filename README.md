@@ -18,7 +18,7 @@ A personal finance tracking platform for monitoring income, expenses, cash flow,
 ```
 backend/     Go API
   migrations/        Schema migrations (applied on stack startup)
-  migrations-local/  Local dev seeds only (manual — see seed-demo.ps1)
+  migrations-local/  Local demo seed (applied automatically by Docker Compose)
 web/         React web app
 mobile/      Expo React Native app (Android + iOS)
 packages/shared/  Shared API client and DTOs
@@ -28,65 +28,105 @@ docs/        architecture, API, roadmap
 
 ## Prerequisites
 
-- [Docker Desktop](https://www.docker.com/) (Postgres, API, and web — **no Go or Node install required** for Docker)
-- [Node.js](https://nodejs.org/) 20+ (web and mobile local dev)
-- [Expo Go](https://expo.dev/go) or Android Studio / Xcode simulator (optional, for mobile)
+| Tool | Used for |
+|------|----------|
+| [Docker Desktop](https://www.docker.com/) | Postgres, API, web (no Go/Node required) |
+| [Node.js](https://nodejs.org/) 20+ | Mobile app (Expo) |
+| [Expo Go](https://expo.dev/go) (**SDK 54**) on your phone, or Android Studio emulator | Running the mobile app (must match project Expo SDK) |
 
-Optional for local backend development:
+Optional: [Go](https://go.dev/dl/) 1.23+ only if you develop the API outside Docker.
 
-- [Go](https://go.dev/dl/) 1.23+ (add `C:\Program Files\Go\bin` to your PATH after install)
-- [sqlc](https://docs.sqlc.dev/en/latest/overview/install.html) (optional; generated store is committed)
-- [golang-migrate](https://github.com/golang-migrate/migrate) CLI if you prefer running migrations outside Docker
+---
 
-## Quick start (Docker — full stack)
+## Local development (start everything)
 
-Start **Postgres, schema migrations, local demo seed, API, and web UI** in one command:
+Use **two terminals**. You do **not** need to run migrations manually — Docker Compose runs schema migrations and the demo seed before the API starts.
 
-```powershell
-docker compose -f deploy/docker-compose.yml up --build
-```
+### Terminal 1 — Backend + web (Docker)
 
-Startup order:
-
-1. **Postgres** (data persisted in Docker volume `wealthstack_pgdata`)
-2. **migrate** — schema from `backend/migrations/` (automatic)
-3. **migrate-local** — demo seed from `backend/migrations-local/` (automatic in this compose file only)
-4. **api** → http://localhost:8080
-5. **web** → http://localhost:5173
-
-Demo login after first start: `admin@nowhere.com` / `password123`
+From the repository root:
 
 ```powershell
 docker compose -f deploy/docker-compose.yml up --build
 ```
 
-Or use the helper script:
+Or:
 
 ```powershell
 .\scripts\start-stack.ps1
 ```
 
+**What happens automatically on startup:**
+
+1. **Postgres** starts (data in Docker volume `wealthstack_pgdata`)
+2. **`migrate`** applies `backend/migrations/` (schema)
+3. **`migrate-local`** applies `backend/migrations-local/` (demo user + sample data)
+4. **`api`** builds and listens on **http://localhost:8080**
+5. **`web`** builds and listens on **http://localhost:5173**
+
 | Service | URL |
 |---------|-----|
 | Web UI | http://localhost:5173 |
 | API | http://localhost:8080 |
-| Postgres | localhost:5432 |
+| Postgres | `localhost:5432` (user/password/db: `wealthstack`) |
 
-Run detached (background):
+**Demo login** (after first successful start): `admin@nowhere.com` / `password123`
+
+Run in the background:
 
 ```powershell
 docker compose -f deploy/docker-compose.yml up --build -d
 ```
 
-Stop everything:
+Stop the stack (must pass the compose file path):
 
 ```powershell
 docker compose -f deploy/docker-compose.yml down
 ```
 
+`docker compose down` alone will fail with “no configuration file provided” — always use `-f deploy/docker-compose.yml`.
+
+### Terminal 2 — Mobile (Expo)
+
+Keep Terminal 1 running. In a **new** terminal, from the repository root:
+
+```powershell
+.\scripts\start-mobile.ps1
+```
+
+Or manually:
+
+```powershell
+npm install
+npm run build -w @wealth-stack/shared
+copy mobile\.env.example mobile\.env
+npm run start -w wealth-stack-mobile
+```
+
+Metro runs on **http://localhost:8082** (fixed port — no prompt).
+
+| Target | How to open | API URL in `mobile/.env` |
+|--------|-------------|---------------------------|
+| Android emulator | Press **`a`** in the Expo terminal | `http://10.0.2.2:8080` (default in `.env.example`) |
+| Physical phone (Expo Go) | Scan the QR code (same Wi‑Fi as PC) | `http://<your-pc-lan-ip>:8080` |
+| iOS simulator (Mac) | Press **`i`** | `http://localhost:8080` |
+
+Do **not** press **`w`** — the mobile app is Android/iOS only (no Expo web).
+
+The mobile app targets **Expo SDK 54** (React Native 0.81, React 19). If Expo Go says the project is incompatible, update Expo Go from the store or install the [SDK 54 build](https://expo.dev/go?sdkVersion=54).
+
+### Quick checklist
+
+1. Docker Desktop is running  
+2. Terminal 1: `docker compose -f deploy/docker-compose.yml up --build` — wait until API and web are up  
+3. Terminal 2: `.\scripts\start-mobile.ps1` — press **`a`** or scan QR  
+4. Log in on web or mobile (register or use demo account above)
+
 ---
 
-## Quick start (step by step)
+## Advanced: run pieces separately
+
+Use this only if you are **not** using the full Docker Compose command above.
 
 ### 1. Database
 
@@ -97,27 +137,17 @@ docker compose -f deploy/docker-compose.yml up -d postgres
 
 Postgres listens on `localhost:5432` (user/password/db: `wealthstack`).
 
-### 2. Migrations
+### 2. Migrations (manual — usually not needed)
 
-**Windows (PowerShell)** — recommended, no extra tools:
+If you only start Postgres without the full stack, run migrations yourself:
 
 ```powershell
 .\scripts\migrate-up.ps1
 ```
 
-**Docker Compose** (any OS):
+Or: `docker compose -f deploy/docker-compose.yml run --rm migrate`
 
-```powershell
-docker compose -f deploy/docker-compose.yml run --rm migrate
-```
-
-**Optional — local migrate CLI** (only if installed):
-
-```powershell
-migrate -path backend/migrations -database "postgres://wealthstack:wealthstack@localhost:5432/wealthstack?sslmode=disable" up
-```
-
-Or with Make: `make migrate-up`
+The **recommended** `docker compose up --build` flow runs migrations for you.
 
 ### 3. API
 
@@ -174,9 +204,8 @@ Environment variables (see `.env.example`):
 Or manually:
 
 ```powershell
-cd web
 npm install
-npm run dev
+npm run dev -w wealth-stack-web
 ```
 
 Open **http://localhost:5173** in your browser. The dev server proxies API calls to `localhost:8080`.
@@ -185,24 +214,7 @@ Use the same register/login flow as mobile. Dashboard and Transactions mirror th
 
 ### 5. Mobile (Expo)
 
-From the repository root:
-
-```powershell
-npm install
-npm run build -w @wealth-stack/shared
-cd mobile
-npm run start
-```
-
-Set the API URL for your device/emulator (create `mobile/.env`):
-
-| Environment | `EXPO_PUBLIC_API_BASE_URL` |
-|-------------|----------------------------|
-| Android emulator | `http://10.0.2.2:8080` |
-| iOS simulator | `http://localhost:8080` |
-| Physical device | `http://<your-lan-ip>:8080` |
-
-Scan the QR code with Expo Go, or press `a` / `i` for Android / iOS simulator.
+See **[Local development](#local-development-start-everything)** — use `.\scripts\start-mobile.ps1` (Metro on port **8082**).
 
 ### 6. Try the flow
 
@@ -312,11 +324,10 @@ make backend-ci
 ```powershell
 npm install
 npm run build -w @wealth-stack/shared
-cd web
-npm run lint
-npm run typecheck
-npm run build
-npm run coverage
+npm run lint -w wealth-stack-web
+npm run typecheck -w wealth-stack-web
+npm run build -w wealth-stack-web
+npm run coverage -w wealth-stack-web
 ```
 
 Or:
@@ -375,7 +386,9 @@ Individual Make targets are listed below.
 | `make lint` | Backend + frontend lint |
 | `make backend-ci` | Full backend CI parity |
 | `make frontend-ci` | Full frontend CI parity |
-| `make mobile-start` | Start Expo dev server |
+| `make mobile-start` | Start Expo dev server (port 8082) |
+| `.\scripts\start-mobile.ps1` | Install deps, build shared, start mobile (port 8082) |
+| `.\scripts\start-stack.ps1` | Docker: Postgres + migrations + API + web |
 | `make mobile-test` | Mobile Jest tests |
 | `make mobile-ci` | Full mobile CI parity |
 | `make ci` | Full CI parity (backend + frontend + mobile) |

@@ -60,4 +60,6 @@ export interface WealthStackApiConfig {
   baseUrl: string;
   storage: TokenStorage;
   fetchImpl?: typeof fetch;
+  /** Abort hung requests (e.g. wrong API host on a physical device). Default 20s. */
+  requestTimeoutMs?: number;
 }
