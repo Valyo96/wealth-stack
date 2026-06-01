@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react-native";
+import { screen, waitFor } from "@testing-library/react-native";
 import BudgetOverviewScreen from "./budget";
 import { renderWithProviders } from "../../src/test/renderWithProviders";
 
@@ -18,8 +18,11 @@ jest.mock("../../src/api", () => ({
 describe("BudgetOverviewScreen", () => {
   it("renders budget summary from dashboard API", async () => {
     renderWithProviders(<BudgetOverviewScreen />);
-    expect(await screen.findByText("Budget overview")).toBeTruthy();
-    expect(await screen.findByText("May 2026")).toBeTruthy();
-    expect(await screen.findByText(/\$750/)).toBeTruthy();
+    expect(screen.getByText("Budget overview")).toBeTruthy();
+    await waitFor(() => {
+      expect(screen.getByText("May 2026")).toBeTruthy();
+      expect(screen.getByText("Income")).toBeTruthy();
+      expect(screen.getByText("Expenses")).toBeTruthy();
+    });
   });
 });

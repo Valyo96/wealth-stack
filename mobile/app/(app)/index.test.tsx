@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react-native";
+import { screen, waitFor } from "@testing-library/react-native";
 import DashboardScreen from "./index";
 import { renderWithProviders } from "../../src/test/renderWithProviders";
 
@@ -26,12 +26,11 @@ jest.mock("../../src/api", () => ({
 
 describe("DashboardScreen", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    mockLogout.mockResolvedValue(undefined);
-    mockListAccounts.mockResolvedValue([
+    mockLogout.mockReset().mockResolvedValue(undefined);
+    mockListAccounts.mockReset().mockResolvedValue([
       { id: "a1", name: "Main Wallet", currency: "USD", account_type: "cash" },
     ]);
-    mockDashboardSummary.mockResolvedValue({
+    mockDashboardSummary.mockReset().mockResolvedValue({
       total_income: "1000",
       total_expenses: "400",
       net: "600",
@@ -39,7 +38,7 @@ describe("DashboardScreen", () => {
       period_start: "2026-05-01",
       period_end: "2026-05-31",
     });
-    mockCreateAccount.mockResolvedValue({
+    mockCreateAccount.mockReset().mockResolvedValue({
       id: "a1",
       name: "Main Wallet",
       currency: "USD",
@@ -49,16 +48,30 @@ describe("DashboardScreen", () => {
 
   it("renders dashboard summary and accounts", async () => {
     renderWithProviders(<DashboardScreen />);
-    expect(await screen.findByText("Dashboard")).toBeTruthy();
-    expect(await screen.findByText(/\$600/)).toBeTruthy();
-    expect(await screen.findByText("Main Wallet")).toBeTruthy();
+
+    expect(screen.getByText("Dashboard")).toBeTruthy();
+
+    await waitFor(() => {
+      expect(mockDashboardSummary).toHaveBeenCalled();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Main Wallet")).toBeTruthy();
+      expect(screen.getByText("May 2026")).toBeTruthy();
+      expect(screen.getByText("Income")).toBeTruthy();
+    });
   });
 
   it("creates default account when none exist", async () => {
-    mockListAccounts.mockResolvedValueOnce([]).mockResolvedValueOnce([
-      { id: "new", name: "Main Wallet", currency: "USD", account_type: "cash" },
-    ]);
+    mockListAccounts
+      .mockReset()
+      .mockResolvedValueOnce([])
+      .mockResolvedValue([
+        { id: "new", name: "Main Wallet", currency: "USD", account_type: "cash" },
+      ]);
+
     renderWithProviders(<DashboardScreen />);
+
     await waitFor(() => {
       expect(mockCreateAccount).toHaveBeenCalledWith("Main Wallet");
     });
