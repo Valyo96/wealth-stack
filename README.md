@@ -10,7 +10,8 @@ A personal finance tracking platform for monitoring income, expenses, cash flow,
 | Database | PostgreSQL 16, [sqlc](https://sqlc.dev/), [pgx](https://github.com/jackc/pgx) |
 | Migrations | [golang-migrate](https://github.com/golang-migrate/migrate) |
 | Web | React 19, TypeScript, Vite, React Router |
-| Android | Kotlin, Jetpack Compose, Hilt, Retrofit, DataStore |
+| Mobile | Expo, React Native, TypeScript, TanStack Query, Zustand |
+| Shared | `@wealth-stack/shared` — API types and HTTP client (web + mobile) |
 
 ## Repository layout
 
@@ -19,7 +20,8 @@ backend/     Go API
   migrations/        Schema migrations (applied on stack startup)
   migrations-local/  Local dev seeds only (manual — see seed-demo.ps1)
 web/         React web app
-android/     Android app (open in Android Studio)
+mobile/      Expo React Native app (Android + iOS)
+packages/shared/  Shared API client and DTOs
 deploy/      docker-compose for Postgres, API, and web
 docs/        architecture, API, roadmap
 ```
@@ -27,9 +29,8 @@ docs/        architecture, API, roadmap
 ## Prerequisites
 
 - [Docker Desktop](https://www.docker.com/) (Postgres, API, and web — **no Go or Node install required** for Docker)
-- [Node.js](https://nodejs.org/) 20+ (optional — only for local web dev with hot reload)
-- [Android Studio](https://developer.android.com/studio) (Ladybug or newer, optional)
-- **JDK 23+** (required for Android builds and tests — see [Running tests locally](#running-tests-locally))
+- [Node.js](https://nodejs.org/) 20+ (web and mobile local dev)
+- [Expo Go](https://expo.dev/go) or Android Studio / Xcode simulator (optional, for mobile)
 
 Optional for local backend development:
 
@@ -180,22 +181,32 @@ npm run dev
 
 Open **http://localhost:5173** in your browser. The dev server proxies API calls to `localhost:8080`.
 
-Use the same register/login flow as mobile. Dashboard and Transactions mirror the Android screens.
+Use the same register/login flow as mobile. Dashboard and Transactions mirror the mobile app.
 
-### 5. Android
+### 5. Mobile (Expo)
 
-1. Install **JDK 23+** and point Android Studio to it (**Settings → Build, Execution, Deployment → Build Tools → Gradle → Gradle JDK**).
-2. Open the `android/` folder in Android Studio (installs the Android SDK on first launch).
-3. Start an emulator (API 26+).
-4. Run the **app** configuration.
+From the repository root:
 
-Debug builds call `http://10.0.2.2:8080/` (emulator → host machine). Cleartext is allowed in debug only.
+```powershell
+npm install
+npm run build -w @wealth-stack/shared
+cd mobile
+npm run start
+```
 
-If Gradle cannot find your SDK, copy [`android/local.properties.example`](android/local.properties.example) to `android/local.properties` and set `sdk.dir`.
+Set the API URL for your device/emulator (create `mobile/.env`):
+
+| Environment | `EXPO_PUBLIC_API_BASE_URL` |
+|-------------|----------------------------|
+| Android emulator | `http://10.0.2.2:8080` |
+| iOS simulator | `http://localhost:8080` |
+| Physical device | `http://<your-lan-ip>:8080` |
+
+Scan the QR code with Expo Go, or press `a` / `i` for Android / iOS simulator.
 
 ### 6. Try the flow
 
-1. Register a new account in the **web app** or **Android app** (password at least 8 characters).
+1. Register a new account in the **web app** or **mobile app** (password at least 8 characters).
 2. Dashboard loads monthly summary (zeros until you add data).
 3. Open **Transactions** → **+** to add income or expense (a default account is created if needed).
 
@@ -222,7 +233,7 @@ To re-apply schema + seed manually without restarting the stack:
 
 ## Running tests locally
 
-Run these before opening a PR to match CI behavior. Use **`make ci`** to run backend, web, and Android checks in one command (requires Go, Node.js, Docker, JDK 23+, and Android SDK).
+Run these before opening a PR to match CI behavior. Use **`make ci`** to run backend, web, and mobile checks in one command (requires Go, Node.js, and Docker for integration tests).
 
 ### Prerequisites by stack
 
@@ -230,7 +241,7 @@ Run these before opening a PR to match CI behavior. Use **`make ci`** to run bac
 |-------|----------------|
 | Backend | [Go 1.23+](https://go.dev/dl/), Docker Desktop (integration tests only) |
 | Web | [Node.js 20+](https://nodejs.org/) |
-| Android | **JDK 23+**, Android SDK (via Android Studio), Gradle wrapper (`android/gradlew`) |
+| Mobile | Node.js 20+, npm workspaces (install at repo root) |
 
 ### Backend (Go)
 
@@ -299,8 +310,9 @@ make backend-ci
 ### Web (React + TypeScript)
 
 ```powershell
+npm install
+npm run build -w @wealth-stack/shared
 cd web
-npm ci
 npm run lint
 npm run typecheck
 npm run build
@@ -315,39 +327,26 @@ make frontend-ci
 
 `npm run coverage` runs Vitest and enforces minimum coverage thresholds defined in [`web/vitest.config.ts`](web/vitest.config.ts).
 
-### Android (Kotlin)
+### Mobile (Expo + React Native)
 
-Requires **JDK 23+** and a configured Android SDK.
-
-**Windows (PowerShell):**
+From the repository root:
 
 ```powershell
-# Ensure JAVA_HOME points to JDK 23+
-$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-23"
-
-cd android
-.\gradlew.bat testDebugUnitTest
-.\gradlew.bat lintDebug
+npm install
+npm run build -w @wealth-stack/shared
+cd mobile
+npm run lint
+npm run typecheck
+npm run test
 ```
 
-**macOS / Linux / Git Bash:**
-
-```bash
-export JAVA_HOME=$(/usr/libexec/java_home -v 23)   # macOS example
-cd android
-./gradlew testDebugUnitTest
-./gradlew lintDebug
-```
-
-Or with Make:
+Or:
 
 ```powershell
-make android-test
-make android-lint
-make android-ci
+make mobile-ci
 ```
 
-Unit tests live under [`android/app/src/test/`](android/app/src/test/) and cover API helpers, auth interceptor behavior, and login validation logic.
+Tests live under [`mobile/src/`](mobile/src/) and [`packages/shared/src/`](packages/shared/src/).
 
 ### Run everything
 
@@ -376,16 +375,16 @@ Individual Make targets are listed below.
 | `make lint` | Backend + frontend lint |
 | `make backend-ci` | Full backend CI parity |
 | `make frontend-ci` | Full frontend CI parity |
-| `make android-test` | Android unit tests (JDK 23+, Android SDK) |
-| `make android-lint` | Android lint (debug variant) |
-| `make android-ci` | Full Android CI parity |
-| `make ci` | Full CI parity (backend + frontend + Android) |
+| `make mobile-start` | Start Expo dev server |
+| `make mobile-test` | Mobile Jest tests |
+| `make mobile-ci` | Full mobile CI parity |
+| `make ci` | Full CI parity (backend + frontend + mobile) |
 
 ## CI/CD
 
 Pull requests to `main` run the **[CI Pipeline](.github/workflows/ci.yml)** workflow:
 
-1. **Backend, frontend, and Android validation** run in parallel (lint, tests, coverage).
+1. **Backend, frontend, and mobile validation** run in parallel (lint, tests, coverage).
 2. **SonarCloud analysis** runs last, using coverage artifacts from all three stacks.
 
 Configure the `SONAR_TOKEN` repository secret and **disable SonarCloud Automatic Analysis** (CI is the source of truth). See [CI/CD Runbook](docs/ci.md) for setup, branch protection, and troubleshooting.

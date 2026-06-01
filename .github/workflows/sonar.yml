@@ -29,11 +29,11 @@ jobs:
           name: frontend-coverage
           path: reports/coverage/web
 
-      - name: Download Android JaCoCo report
+      - name: Download mobile coverage
         uses: actions/download-artifact@v4
         with:
-          name: android-coverage
-          path: reports/coverage/android
+          name: mobile-coverage
+          path: reports/coverage/mobile
 
       - name: Validate Sonar token
         env:

@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "Wealth Stack",
+    "slug": "wealth-stack",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "wealthstack",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.wealthstack.app"
+    },
+    "android": {
+      "package": "com.wealthstack.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0f1419"
+      }
+    },
+    "plugins": ["expo-router", "expo-secure-store"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

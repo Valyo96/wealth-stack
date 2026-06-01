@@ -1,53 +1,31 @@
-# Test coverage for SonarCloud
+# Coverage & SonarCloud
 
-SonarCloud **does not run tests or compute coverage**. Each stack must generate a report that Sonar imports.
+SonarCloud **does not run your tests** — it **imports** coverage reports produced in CI.
 
-## Important: JaCoCo is JVM-only
+## Report paths
 
-**JaCoCo** instruments JVM bytecode. It works for **Android (Kotlin)** but **cannot** instrument:
+| Stack | Generator | Sonar property | Path |
+|-------|-----------|----------------|------|
+| Backend | `scripts/generate-backend-coverage.sh` | `sonar.go.coverage.reportPaths` | `reports/coverage/backend/coverage.out` |
+| Web | `scripts/generate-frontend-coverage.sh` | `sonar.javascript.lcov.reportPaths` | `reports/coverage/web/lcov.info` |
+| Mobile | `scripts/generate-mobile-coverage.sh` | `sonar.javascript.lcov.reportPaths` | `reports/coverage/mobile/lcov.info` |
 
-- **Backend (Go)** — compiled to native Go binaries, not JVM bytecode
-- **Frontend (TypeScript)** — runs in Node/V8, not the JVM
-
-SonarCloud requires the **language-specific importer** for each stack. This repo generates all three using a unified layout under `reports/coverage/`.
-
-## Report layout
-
-```
-reports/coverage/
-  backend/
-    coverage.out      ← Sonar import (Go native)
-  web/
-    lcov.info         ← Sonar import (Vitest/V8)
-    cobertura-coverage.xml
-  android/
-    jacocoTestReport.xml  ← Sonar import (JaCoCo)
-```
-
-## Generate locally
+## Local generation
 
 ```bash
-# All stacks
 bash scripts/generate-all-coverage.sh
+```
 
-# Or individually
+Or per stack:
+
+```bash
 bash scripts/generate-backend-coverage.sh
 bash scripts/generate-frontend-coverage.sh
-bash scripts/generate-android-coverage.sh
+bash scripts/generate-mobile-coverage.sh
 ```
 
-Windows (Git Bash or WSL):
+## Notes
 
-```powershell
-bash scripts/generate-all-coverage.sh
-```
-
-## Sonar property mapping
-
-| Stack | Generator | Sonar property |
-|-------|-----------|----------------|
-| Backend | `go test -coverprofile` | `sonar.go.coverage.reportPaths` |
-| Frontend | Vitest lcov | `sonar.javascript.lcov.reportPaths` |
-| Android | Gradle JaCoCo | `sonar.coverage.jacoco.xmlReportPaths` |
-
-See [`sonar-project.properties`](../sonar-project.properties) for exclusions (config, DTOs, generated code).
+- Go and TypeScript cannot use JaCoCo (JVM-only).
+- Web and mobile both contribute to `sonar.javascript.lcov.reportPaths` (comma-separated in `sonar-project.properties`).
+- Shared package tests run via `npm run test -w @wealth-stack/shared` and are included in Sonar sources under `packages/shared/src`.

@@ -6,7 +6,8 @@ Wealth Stack is a monorepo with three clients sharing one API:
 
 - **Backend** — Go REST API (`backend/`)
 - **Web** — React SPA (`web/`)
-- **Mobile** — Android app (`android/`)
+- **Mobile** — Expo React Native app (`mobile/`) for Android and iOS
+- **Shared** — TypeScript API client and DTOs (`packages/shared/`)
 
 PostgreSQL is the system of record. Web and mobile clients authenticate with JWT and call the same `/v1/*` endpoints.
 
@@ -32,29 +33,38 @@ Protected routes require `Authorization: Bearer <access_token>`. All finance dat
 src/pages/       → Login, Dashboard, Transactions
 src/components/  → Layout, protected route wrapper
 src/context/     → Auth state (login/register/logout)
-src/api/         → fetch client + types (mirrors REST API)
+src/api/         → thin adapter over @wealth-stack/shared (localStorage tokens)
 ```
 
-Dev server runs on **http://localhost:5173** and proxies `/v1` to the API on port 8080. In Docker, nginx serves the built app on port 5173 and proxies `/v1` to the `api` service. Tokens are stored in `localStorage`.
+Dev server runs on **http://localhost:5173** and proxies `/v1` to the API on port 8080. In Docker, nginx serves the built app on port 5173 and proxies `/v1` to the `api` service.
 
-## Android layers
+## Mobile layers
 
 ```
-ui/              → Compose screens (Login, Dashboard, Transactions)
-viewmodel/       → UI state, calls repositories
-data/repository/ → domain-facing API wrappers
-data/api/        → Retrofit interface + DTOs
-data/local/      → DataStore token persistence
-di/              → Hilt modules (network, etc.)
+app/             → Expo Router screens (auth + tab navigation)
+src/api/         → Secure Store token adapter over @wealth-stack/shared
+src/store/       → Zustand auth session
+src/components/  → reusable UI
+src/providers/   → TanStack Query client
+```
+
+Tokens are stored in **expo-secure-store**. The shared client refreshes access tokens on `401` via `POST /v1/auth/refresh`.
+
+## Shared package
+
+```
+packages/shared/src/
+  types.ts       → DTOs and ApiClientError
+  apiClient.ts   → createWealthStackApi (fetch, envelope parsing, JWT refresh)
 ```
 
 ## Data flow
 
 1. User registers or logs in → API returns access + refresh tokens.
-2. Client stores tokens (web: localStorage, Android: DataStore) and sends Bearer token on requests.
+2. Client stores tokens (web: localStorage, mobile: Secure Store) and sends Bearer token on requests.
 3. Dashboard calls `GET /v1/dashboard/summary` for current-month totals.
 4. Transactions list/create via `/v1/transactions`.
 
 ## Real-time (phase 2)
 
-Skeleton uses manual refresh. Future: SSE or WebSocket stream for live dashboard updates.
+Skeleton uses manual refresh. Future: SSE or WebSocket stream for live dashboard updates on web and mobile.

@@ -1,52 +1,28 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+web/dist/
+packages/shared/dist/
+mobile/.expo/
+mobile/coverage/
+
+# Coverage reports
+reports/
+backend/coverage.out
+web/coverage/
+
 # Environment
 .env
 .env.local
-.env.*.local
+mobile/.env
+
+# OS / IDE
+.DS_Store
+.idea/
+*.iml
+.vscode/
 
 # Go
-backend/bin/
-backend/tmp/
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-*.test
-*.out
-vendor/
-
-# Android
-android/.gradle/
-android/build/
-android/app/build/
-android/local.properties
-android/.idea/
-android/*.iml
-android/captures/
-android/.externalNativeBuild/
-android/.cxx/
-android/keystore.properties
-*.apk
-*.aab
-
-# Web
-web/node_modules/
-web/dist/
-web/coverage/
-reports/
-web/.env
-web/.env.local
-
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
+backend/coverage.out

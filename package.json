@@ -1,0 +1,15 @@
+{
+  "name": "wealth-stack",
+  "private": true,
+  "workspaces": [
+    "packages/shared",
+    "web",
+    "mobile"
+  ],
+  "scripts": {
+    "test:shared": "npm run test -w @wealth-stack/shared"
+  },
+  "overrides": {
+    "react-test-renderer": "18.3.1"
+  }
+}

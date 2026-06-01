@@ -1,19 +1,19 @@
-name: Frontend CI
+name: Mobile CI
 
 on:
   workflow_call:
   workflow_dispatch:
 
 concurrency:
-  group: frontend-ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: mobile-ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  frontend:
-    name: Frontend validation
+  mobile:
+    name: Mobile validation
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -34,25 +34,26 @@ jobs:
         run: npm run build -w @wealth-stack/shared
 
       - name: Lint
-        working-directory: web
+        working-directory: mobile
         run: npm run lint
 
       - name: TypeScript validation
-        working-directory: web
+        working-directory: mobile
         run: npm run typecheck
 
-      - name: Production build
-        working-directory: web
-        run: npm run build
-
-      - name: Tests and coverage thresholds
-        working-directory: web
+      - name: Tests and coverage
+        working-directory: mobile
         run: npm run coverage:sonar
 
-      - name: Upload frontend coverage artifact
+      - name: Publish mobile coverage for Sonar
+        run: |
+          mkdir -p reports/coverage/mobile
+          cp mobile/coverage/lcov.info reports/coverage/mobile/lcov.info
+
+      - name: Upload mobile coverage artifact
         uses: actions/upload-artifact@v4
         with:
-          name: frontend-coverage
-          path: reports/coverage/web/
+          name: mobile-coverage
+          path: reports/coverage/mobile/
           retention-days: 5
           if-no-files-found: error

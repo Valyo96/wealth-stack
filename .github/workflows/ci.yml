@@ -25,14 +25,14 @@ jobs:
     uses: ./.github/workflows/frontend-ci.yml
     secrets: inherit
 
-  android:
-    name: Android validation
-    uses: ./.github/workflows/android-ci.yml
+  mobile:
+    name: Mobile validation
+    uses: ./.github/workflows/mobile-ci.yml
     secrets: inherit
 
   sonar:
     name: SonarCloud analysis
-    needs: [backend, frontend, android]
+    needs: [backend, frontend, mobile]
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     uses: ./.github/workflows/sonar.yml
     secrets: inherit
