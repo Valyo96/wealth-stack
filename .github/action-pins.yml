@@ -1,10 +1,6 @@
 # Pinned third-party GitHub Actions (full commit SHA for githubactions:S7637).
 # Tag reference is kept in comments for maintainability.
 #
-# android-actions/setup-android@v3
-android_actions_setup_android: 9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407
-# gradle/actions/setup-gradle@v4
-gradle_actions_setup_gradle: 48b5f213c81028ace310571dc5ec0fbbca0b2947
 # golangci/golangci-lint-action@v6
 golangci_golangci_lint_action: 55c2c1448f86e01eaae002a5a3a9624417608d84
 # SonarSource/sonarqube-scan-action@v5.0.0

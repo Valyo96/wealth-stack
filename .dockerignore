@@ -1,0 +1,15 @@
+# Used when building the web image (context = repo root)
+.git
+.github
+**/node_modules
+**/dist
+**/coverage
+**/.expo
+reports
+backend
+deploy
+docs
+android
+*.md
+.env
+.env.*

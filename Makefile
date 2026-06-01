@@ -1,6 +1,6 @@
 .PHONY: dev migrate-up migrate-down sqlc-generate test test-unit test-integration test-race lint lint-backend lint-frontend \
-	backend-coverage frontend-coverage android-coverage sonar-coverage ci backend-ci frontend-ci \
-	android-test android-lint android-ci stack-up stack-down seed-demo
+	backend-coverage frontend-coverage mobile-coverage sonar-coverage ci backend-ci frontend-ci \
+	mobile-test mobile-ci stack-up stack-down seed-demo
 
 DATABASE_URL ?= postgres://wealthstack:wealthstack@localhost:5432/wealthstack?sslmode=disable
 COMPOSE_FILE = deploy/docker-compose.yml
@@ -48,8 +48,8 @@ backend-coverage:
 frontend-coverage:
 	bash scripts/generate-frontend-coverage.sh
 
-android-coverage:
-	bash scripts/generate-android-coverage.sh
+mobile-coverage:
+	bash scripts/generate-mobile-coverage.sh
 
 sonar-coverage:
 	bash scripts/generate-all-coverage.sh
@@ -61,22 +61,27 @@ lint-backend:
 	cd backend && test -z "$$(gofmt -l .)" || (gofmt -l . && exit 1)
 
 lint-frontend:
-	cd web && npm ci && npm run lint
+	npm run lint -w wealth-stack-web
 
 backend-ci: lint-backend test-unit test-integration test-race backend-coverage
 
 frontend-ci:
-	cd web && npm ci && npm run lint && npm run typecheck && npm run build && npm run coverage:sonar
+	npm run build -w @wealth-stack/shared
+	npm run lint -w wealth-stack-web
+	npm run typecheck -w wealth-stack-web
+	npm run build -w wealth-stack-web
+	npm run coverage:sonar -w wealth-stack-web
 
-android-test:
-	cd android && chmod +x ./gradlew && ./gradlew testDebugUnitTest jacocoTestReport --no-daemon
+mobile-test:
+	npm run test -w wealth-stack-mobile
 
-android-lint:
-	cd android && chmod +x ./gradlew && ./gradlew lintDebug --no-daemon
+mobile-ci:
+	npm run build -w @wealth-stack/shared
+	npm run lint -w wealth-stack-mobile
+	npm run typecheck -w wealth-stack-mobile
+	npm run coverage:sonar -w wealth-stack-mobile
 
-android-ci: android-test android-lint
-
-ci: backend-ci frontend-ci android-ci
+ci: backend-ci frontend-ci mobile-ci
 
 backend-run:
 	cd backend && go run ./cmd/api
@@ -85,4 +90,8 @@ backend-docker:
 	docker compose -f $(COMPOSE_FILE) up --build api
 
 web-dev:
-	cd web && npm install && npm run dev
+	npm run dev -w wealth-stack-web
+
+mobile-start:
+	npm run build -w @wealth-stack/shared
+	npm run start -w wealth-stack-mobile

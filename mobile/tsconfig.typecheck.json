@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "src/api/**/*.ts",
+    "src/store/**/*.ts",
+    "src/theme/format.ts",
+    "src/theme/colors.ts",
+    "src/theme/styles.ts"
+  ]
+}

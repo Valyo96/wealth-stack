@@ -1,0 +1,69 @@
+name: Mobile CI
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+concurrency:
+  group: mobile-ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  mobile:
+    name: Mobile validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build shared package
+        run: npm run build -w @wealth-stack/shared
+
+      - name: Lint
+        run: npm run lint -w wealth-stack-mobile
+
+      - name: TypeScript validation
+        run: npm run typecheck -w wealth-stack-mobile
+
+      - name: Shared package coverage
+        run: npm run coverage:sonar -w @wealth-stack/shared
+
+      - name: Tests and coverage
+        run: npm run coverage:sonar -w wealth-stack-mobile
+
+      - name: Publish coverage for Sonar
+        run: |
+          mkdir -p reports/coverage/mobile reports/coverage/shared
+          cp mobile/coverage/lcov.info reports/coverage/mobile/lcov.info
+          cp packages/shared/coverage/lcov.info reports/coverage/shared/lcov.info
+
+      - name: Upload mobile coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-coverage
+          path: reports/coverage/mobile/
+          retention-days: 5
+          if-no-files-found: error
+
+      - name: Upload shared coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: shared-coverage
+          path: reports/coverage/shared/
+          retention-days: 5
+          if-no-files-found: error
