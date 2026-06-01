@@ -69,6 +69,7 @@ export default function LoginScreen() {
           <View>
             <Text style={common.label}>Email</Text>
             <TextInput
+              accessibilityLabel="Email"
               style={common.input}
               value={email}
               onChangeText={setEmail}
@@ -80,6 +81,7 @@ export default function LoginScreen() {
           <View>
             <Text style={common.label}>Password</Text>
             <TextInput
+              accessibilityLabel="Password"
               style={common.input}
               value={password}
               onChangeText={setPassword}

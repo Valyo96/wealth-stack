@@ -7,6 +7,7 @@ SonarCloud **does not run your tests** — it **imports** coverage reports produ
 | Stack | Generator | Sonar property | Path |
 |-------|-----------|----------------|------|
 | Backend | `scripts/generate-backend-coverage.sh` | `sonar.go.coverage.reportPaths` | `reports/coverage/backend/coverage.out` |
+| Shared | `scripts/generate-shared-coverage.sh` | `sonar.javascript.lcov.reportPaths` | `reports/coverage/shared/lcov.info` |
 | Web | `scripts/generate-frontend-coverage.sh` | `sonar.javascript.lcov.reportPaths` | `reports/coverage/web/lcov.info` |
 | Mobile | `scripts/generate-mobile-coverage.sh` | `sonar.javascript.lcov.reportPaths` | `reports/coverage/mobile/lcov.info` |
 

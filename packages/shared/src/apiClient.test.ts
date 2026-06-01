@@ -1,5 +1,5 @@
 import { createWealthStackApi } from "./apiClient.js";
-import type { TokenPair, TokenStorage } from "./types.js";
+import { ApiClientError, type TokenPair, type TokenStorage } from "./types.js";
 
 function createMemoryStorage(): TokenStorage & {
   access: string | null;
@@ -32,7 +32,18 @@ function createMemoryStorage(): TokenStorage & {
   };
 }
 
+const tokens: TokenPair = {
+  access_token: "access",
+  refresh_token: "refresh",
+  expires_in: 900,
+};
+
 describe("createWealthStackApi", () => {
+  afterEach(() => {
+    jest.useRealTimers();
+    jest.clearAllTimers();
+  });
+
   it("parses error envelope", async () => {
     const storage = createMemoryStorage();
     const fetchImpl = jest.fn().mockResolvedValue({
@@ -54,6 +65,127 @@ describe("createWealthStackApi", () => {
     });
   });
 
+  it("logs in and stores tokens", async () => {
+    const storage = createMemoryStorage();
+    const fetchImpl = jest.fn().mockResolvedValue({
+      status: 200,
+      json: async () => ({ data: tokens }),
+    });
+
+    const api = createWealthStackApi({
+      baseUrl: "http://api.test",
+      storage,
+      fetchImpl: fetchImpl as typeof fetch,
+    });
+
+    const result = await api.login("a@b.com", "password123");
+    expect(result).toEqual(tokens);
+    expect(fetchImpl).toHaveBeenCalledWith(
+      "http://api.test/v1/auth/login",
+      expect.objectContaining({ method: "POST" }),
+    );
+  });
+
+  it("registers a user", async () => {
+    const storage = createMemoryStorage();
+    const fetchImpl = jest.fn().mockResolvedValue({
+      status: 200,
+      json: async () => ({ data: tokens }),
+    });
+
+    const api = createWealthStackApi({
+      baseUrl: "http://api.test",
+      storage,
+      fetchImpl: fetchImpl as typeof fetch,
+    });
+
+    await api.register("new@b.com", "password123");
+    expect(fetchImpl).toHaveBeenCalledWith(
+      "http://api.test/v1/auth/register",
+      expect.objectContaining({ method: "POST" }),
+    );
+  });
+
+  it("reports empty response", async () => {
+    const storage = createMemoryStorage();
+    const fetchImpl = jest.fn().mockResolvedValue({
+      status: 200,
+      json: async () => ({}),
+    });
+
+    const api = createWealthStackApi({
+      baseUrl: "http://api.test",
+      storage,
+      fetchImpl: fetchImpl as typeof fetch,
+    });
+
+    await expect(api.login("a@b.com", "password123")).rejects.toMatchObject({
+      code: "empty_response",
+    });
+  });
+
+  it("reports invalid JSON response", async () => {
+    const storage = createMemoryStorage();
+    const fetchImpl = jest.fn().mockResolvedValue({
+      status: 200,
+      json: async () => {
+        throw new SyntaxError("bad json");
+      },
+    });
+
+    const api = createWealthStackApi({
+      baseUrl: "http://api.test",
+      storage,
+      fetchImpl: fetchImpl as typeof fetch,
+    });
+
+    await expect(api.login("a@b.com", "password123")).rejects.toMatchObject({
+      code: "invalid_response",
+    });
+  });
+
+  it("times out when fetch hangs", async () => {
+    jest.useFakeTimers();
+    const storage = createMemoryStorage();
+    const fetchImpl = jest.fn(
+      (_url: string, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => {
+            const err = new Error("Aborted");
+            err.name = "AbortError";
+            reject(err);
+          });
+        }),
+    );
+
+    const api = createWealthStackApi({
+      baseUrl: "http://api.test",
+      storage,
+      fetchImpl: fetchImpl as typeof fetch,
+      requestTimeoutMs: 1000,
+    });
+
+    const pending = api.login("a@b.com", "password123");
+    jest.advanceTimersByTime(1000);
+
+    await expect(pending).rejects.toMatchObject({ code: "network_error" });
+  });
+
+  it("maps fetch TypeError to network_error", async () => {
+    const storage = createMemoryStorage();
+    const fetchImpl = jest.fn().mockRejectedValue(new TypeError("Failed to fetch"));
+
+    const api = createWealthStackApi({
+      baseUrl: "http://api.test",
+      storage,
+      fetchImpl: fetchImpl as typeof fetch,
+    });
+
+    await expect(api.login("a@b.com", "password123")).rejects.toMatchObject({
+      code: "network_error",
+    });
+  });
+
   it("retries once after 401 using refresh token", async () => {
     const storage = createMemoryStorage();
     storage.setTokens({
@@ -70,13 +202,7 @@ describe("createWealthStackApi", () => {
       })
       .mockResolvedValueOnce({
         status: 200,
-        json: async () => ({
-          data: {
-            access_token: "new-access",
-            refresh_token: "new-refresh",
-            expires_in: 900,
-          },
-        }),
+        json: async () => ({ data: tokens }),
       })
       .mockResolvedValueOnce({
         status: 200,
@@ -100,7 +226,106 @@ describe("createWealthStackApi", () => {
 
     const summary = await api.dashboardSummary();
     expect(summary.net).toBe("50");
-    expect(storage.getAccessToken()).toBe("new-access");
+    expect(storage.getAccessToken()).toBe("access");
     expect(fetchImpl).toHaveBeenCalledTimes(3);
+  });
+
+  it("refresh fails without refresh token", async () => {
+    const storage = createMemoryStorage();
+    const api = createWealthStackApi({
+      baseUrl: "http://api.test",
+      storage,
+      fetchImpl: jest.fn() as typeof fetch,
+    });
+
+    await expect(api.refresh()).rejects.toMatchObject({
+      code: "unauthorized",
+      message: "No refresh token",
+    });
+  });
+
+  it("lists accounts and transactions", async () => {
+    const storage = createMemoryStorage();
+    storage.setTokens(tokens);
+    const fetchImpl = jest
+      .fn()
+      .mockResolvedValueOnce({
+        status: 200,
+        json: async () => ({
+          data: [{ id: "a1", name: "Cash", currency: "USD", account_type: "cash" }],
+        }),
+      })
+      .mockResolvedValueOnce({
+        status: 200,
+        json: async () => ({
+          data: [
+            {
+              id: "t1",
+              account_id: "a1",
+              amount: "10",
+              transaction_type: "expense",
+              occurred_at: "2026-05-01",
+            },
+          ],
+        }),
+      });
+
+    const api = createWealthStackApi({
+      baseUrl: "http://api.test",
+      storage,
+      fetchImpl: fetchImpl as typeof fetch,
+    });
+
+    const accounts = await api.listAccounts();
+    expect(accounts).toHaveLength(1);
+    const txs = await api.listTransactions();
+    expect(txs[0]?.amount).toBe("10");
+  });
+
+  it("creates account and transaction", async () => {
+    const storage = createMemoryStorage();
+    storage.setTokens(tokens);
+    const fetchImpl = jest
+      .fn()
+      .mockResolvedValueOnce({
+        status: 200,
+        json: async () => ({
+          data: { id: "a1", name: "Savings", currency: "USD", account_type: "cash" },
+        }),
+      })
+      .mockResolvedValueOnce({
+        status: 200,
+        json: async () => ({
+          data: {
+            id: "t1",
+            account_id: "a1",
+            amount: "25",
+            transaction_type: "income",
+            occurred_at: "2026-05-01",
+          },
+        }),
+      });
+
+    const api = createWealthStackApi({
+      baseUrl: "http://api.test",
+      storage,
+      fetchImpl: fetchImpl as typeof fetch,
+    });
+
+    const account = await api.createAccount("Savings");
+    expect(account.name).toBe("Savings");
+    const tx = await api.createTransaction("a1", "25", "income", "paycheck");
+    expect(tx.transaction_type).toBe("income");
+  });
+
+  it("isAuthenticated reflects storage", () => {
+    const storage = createMemoryStorage();
+    const api = createWealthStackApi({
+      baseUrl: "http://api.test",
+      storage,
+    });
+    expect(api.isAuthenticated()).toBe(false);
+    storage.setTokens(tokens);
+    expect(api.isAuthenticated()).toBe(true);
   });
 });

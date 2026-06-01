@@ -40,18 +40,30 @@ jobs:
       - name: TypeScript validation
         run: npm run typecheck -w wealth-stack-mobile
 
+      - name: Shared package coverage
+        run: npm run coverage:sonar -w @wealth-stack/shared
+
       - name: Tests and coverage
         run: npm run coverage:sonar -w wealth-stack-mobile
 
-      - name: Publish mobile coverage for Sonar
+      - name: Publish coverage for Sonar
         run: |
-          mkdir -p reports/coverage/mobile
+          mkdir -p reports/coverage/mobile reports/coverage/shared
           cp mobile/coverage/lcov.info reports/coverage/mobile/lcov.info
+          cp packages/shared/coverage/lcov.info reports/coverage/shared/lcov.info
 
       - name: Upload mobile coverage artifact
         uses: actions/upload-artifact@v4
         with:
           name: mobile-coverage
           path: reports/coverage/mobile/
+          retention-days: 5
+          if-no-files-found: error
+
+      - name: Upload shared coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: shared-coverage
+          path: reports/coverage/shared/
           retention-days: 5
           if-no-files-found: error

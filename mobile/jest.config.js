@@ -22,6 +22,8 @@ module.exports = {
     "src/**/*.{ts,tsx}",
     "app/**/*.{ts,tsx}",
     "!**/*.d.ts",
+    "!**/*.test.{ts,tsx}",
+    "!src/test/**",
   ],
   coverageDirectory: "coverage",
   coverageReporters: ["text", "lcov"],
@@ -33,5 +35,7 @@ module.exports = {
     "^react-native$": reactNativeRoot,
     "^react-native/(.*)$": `${reactNativeRoot}/$1`,
     "^@/(.*)$": "<rootDir>/src/$1",
+    "^@wealth-stack/shared$":
+      "<rootDir>/../packages/shared/dist/index.js",
   },
 };
