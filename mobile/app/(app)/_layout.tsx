@@ -45,6 +45,15 @@ export default function AppLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="recurring"
+        options={{
+          title: "Recurring",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="repeat-outline" size={size} color={color} />
+          ),
+        }}
+      />
     </Tabs>
   );
 }

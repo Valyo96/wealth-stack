@@ -22,6 +22,12 @@ export function Layout({ children }: { children: ReactNode }) {
           >
             Transactions
           </NavLink>
+          <NavLink
+            to="/recurring"
+            className={({ isActive }) => (isActive ? "active" : "")}
+          >
+            Recurring
+          </NavLink>
         </nav>
         <button type="button" className="btn btn-ghost" onClick={logout}>
           Logout

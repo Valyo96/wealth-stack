@@ -328,4 +328,100 @@ describe("createWealthStackApi", () => {
     storage.setTokens(tokens);
     expect(api.isAuthenticated()).toBe(true);
   });
+
+  it("manages recurring transactions", async () => {
+    const storage = createMemoryStorage();
+    storage.setTokens(tokens);
+
+    const recurring: import("./types.js").RecurringTransaction = {
+      id: "r1",
+      user_id: "u1",
+      account_id: "a1",
+      amount: "50.00",
+      transaction_type: "expense",
+      frequency: "monthly",
+      day_of_month: 1,
+      timezone: "UTC",
+      start_date: "2026-06-01",
+      next_execution_at: "2026-06-01T00:00:00Z",
+      paused: false,
+      created_at: "2026-05-01T00:00:00Z",
+      updated_at: "2026-05-01T00:00:00Z",
+    };
+
+    const fetchImpl = jest
+      .fn()
+      .mockResolvedValueOnce({
+        status: 200,
+        json: async () => ({ data: [recurring] }),
+      })
+      .mockResolvedValueOnce({
+        status: 200,
+        json: async () => ({ data: recurring }),
+      })
+      .mockResolvedValueOnce({
+        status: 200,
+        json: async () => ({ data: { ...recurring, paused: true } }),
+      })
+      .mockResolvedValueOnce({
+        status: 200,
+        json: async () => ({ data: recurring }),
+      })
+      .mockResolvedValueOnce({
+        status: 200,
+        json: async () => ({
+          data: { ...recurring, deleted_at: "2026-06-02T00:00:00Z" },
+        }),
+      })
+      .mockResolvedValueOnce({
+        status: 200,
+        json: async () => ({
+          data: [
+            {
+              recurring_transaction_id: "r1",
+              amount: "50.00",
+              transaction_type: "expense",
+              scheduled_for: "2026-06-01T00:00:00Z",
+            },
+          ],
+        }),
+      });
+
+    const api = createWealthStackApi({
+      baseUrl: "http://api.test",
+      storage,
+      fetchImpl: fetchImpl as typeof fetch,
+    });
+
+    const list = await api.listRecurringTransactions();
+    expect(list).toHaveLength(1);
+
+    const created = await api.createRecurringTransaction({
+      account_id: "a1",
+      amount: "50",
+      transaction_type: "expense",
+      frequency: "monthly",
+      day_of_month: 1,
+      start_date: "2026-06-01",
+    });
+    expect(created.id).toBe("r1");
+
+    const paused = await api.pauseRecurringTransaction("r1");
+    expect(paused.paused).toBe(true);
+
+    await api.resumeRecurringTransaction("r1");
+    await api.deleteRecurringTransaction("r1");
+
+    const upcoming = await api.upcomingRecurringTransactions();
+    expect(upcoming[0]?.recurring_transaction_id).toBe("r1");
+
+    expect(fetchImpl).toHaveBeenCalledWith(
+      "http://api.test/v1/recurring-transactions/r1/pause",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(fetchImpl).toHaveBeenCalledWith(
+      "http://api.test/v1/recurring-transactions/upcoming",
+      expect.anything(),
+    );
+  });
 });

@@ -29,3 +29,16 @@ func NewDB(ctx context.Context, databaseURL string) (*DB, error) {
 func (db *DB) Close() {
 	db.Pool.Close()
 }
+
+func (db *DB) WithTx(ctx context.Context, fn func(*Queries) error) error {
+	tx, err := db.Pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	q := New(tx)
+	if err := fn(q); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}

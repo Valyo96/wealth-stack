@@ -1,9 +1,13 @@
 import type {
   Account,
   ApiEnvelope,
+  CreateRecurringTransactionInput,
   DashboardSummary,
+  PatchRecurringTransactionInput,
+  RecurringTransaction,
   TokenPair,
   Transaction,
+  UpcomingRecurringOccurrence,
   WealthStackApiConfig,
 } from "./types.js";
 import { ApiClientError } from "./types.js";
@@ -184,6 +188,71 @@ export function createWealthStackApi(config: WealthStackApiConfig) {
           note: note || undefined,
         }),
       });
+    },
+
+    listRecurringTransactions(includeDeleted = false) {
+      const q = includeDeleted ? "?include_deleted=true" : "";
+      return request<RecurringTransaction[]>(
+        `/v1/recurring-transactions${q}`,
+      ).then((d) => d ?? []);
+    },
+
+    createRecurringTransaction(body: CreateRecurringTransactionInput) {
+      return request<RecurringTransaction>("/v1/recurring-transactions", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+    },
+
+    getRecurringTransaction(id: string) {
+      return request<RecurringTransaction>(`/v1/recurring-transactions/${id}`);
+    },
+
+    patchRecurringTransaction(
+      id: string,
+      body: PatchRecurringTransactionInput,
+    ) {
+      return request<RecurringTransaction>(
+        `/v1/recurring-transactions/${id}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(body),
+        },
+      );
+    },
+
+    deleteRecurringTransaction(id: string) {
+      return request<RecurringTransaction>(
+        `/v1/recurring-transactions/${id}`,
+        { method: "DELETE" },
+      );
+    },
+
+    pauseRecurringTransaction(id: string) {
+      return request<RecurringTransaction>(
+        `/v1/recurring-transactions/${id}/pause`,
+        { method: "POST" },
+      );
+    },
+
+    resumeRecurringTransaction(id: string) {
+      return request<RecurringTransaction>(
+        `/v1/recurring-transactions/${id}/resume`,
+        { method: "POST" },
+      );
+    },
+
+    upcomingRecurringTransactions(opts?: {
+      limit?: number;
+      from?: string;
+    }) {
+      const params = new URLSearchParams();
+      if (opts?.limit != null) params.set("limit", String(opts.limit));
+      if (opts?.from) params.set("from", opts.from);
+      const q = params.toString();
+      return request<UpcomingRecurringOccurrence[]>(
+        `/v1/recurring-transactions/upcoming${q ? `?${q}` : ""}`,
+      ).then((d) => d ?? []);
     },
   };
 }

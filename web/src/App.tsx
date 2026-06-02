@@ -4,6 +4,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { LoginPage } from "./pages/LoginPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { TransactionsPage } from "./pages/TransactionsPage";
+import { RecurringTransactionsPage } from "./pages/RecurringTransactionsPage";
 
 export function App() {
   return (
@@ -14,6 +15,7 @@ export function App() {
           <Route element={<ProtectedRoute />}>
             <Route index element={<DashboardPage />} />
             <Route path="transactions" element={<TransactionsPage />} />
+            <Route path="recurring" element={<RecurringTransactionsPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

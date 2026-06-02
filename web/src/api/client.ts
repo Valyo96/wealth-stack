@@ -52,4 +52,21 @@ export const api = {
     transactionType: "income" | "expense",
     note?: string,
   ) => apiClient.createTransaction(accountId, amount, transactionType, note),
+  listRecurringTransactions: () => apiClient.listRecurringTransactions(),
+  getRecurringTransaction: (id: string) => apiClient.getRecurringTransaction(id),
+  createRecurringTransaction: (
+    input: Parameters<typeof apiClient.createRecurringTransaction>[0],
+  ) => apiClient.createRecurringTransaction(input),
+  patchRecurringTransaction: (
+    id: string,
+    input: Parameters<typeof apiClient.patchRecurringTransaction>[1],
+  ) => apiClient.patchRecurringTransaction(id, input),
+  deleteRecurringTransaction: (id: string) =>
+    apiClient.deleteRecurringTransaction(id),
+  pauseRecurringTransaction: (id: string) =>
+    apiClient.pauseRecurringTransaction(id),
+  resumeRecurringTransaction: (id: string) =>
+    apiClient.resumeRecurringTransaction(id),
+  upcomingRecurringTransactions: (opts?: { limit?: number; from?: string }) =>
+    apiClient.upcomingRecurringTransactions(opts),
 };
